@@ -1,0 +1,1 @@
+{"version":"0.0.0","name":"client","dependencies":{"@nextui-org/react":{"version":"2.1.10"},"axios":{"version":"1.5.0"},"framer-motion":{"version":"10.16.4"},"react-dom":{"version":"18.2.0"},"react":{"version":"18.2.0"}}}
