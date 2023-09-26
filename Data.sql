@@ -2,7 +2,8 @@
 INSERT INTO Department
     (Id,Name)
 VALUES
-    ('02', 'Công nghệ thông tin')
+    ('02', N'Công nghệ thông tin')
+
 
 GO
 
@@ -102,6 +103,3 @@ INSERT INTO AssistantDean
     (LecturerId,DepartmentId)
 VALUES
     ('1215', '02')
-
-DELETE FROM Course
-DELETE FROM Student
