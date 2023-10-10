@@ -225,6 +225,19 @@ END
 
 GO
 
+CREATE PROC sp_account_get_by_username(
+    @username NVARCHAR(10)
+)
+AS
+BEGIN
+    SELECT TOP 1
+        *
+    FROM Account
+    WHERE Username = @username
+END
+
+GO
+
 GO
 
 CREATE PROC sp_get_classInfo(@Id NVARCHAR(50))

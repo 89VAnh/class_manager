@@ -1,0 +1,54 @@
+.login-form {
+  max-width: 40rem;
+
+  .login-form-button {
+    border-radius: 99rem;
+    width: 50%;
+  }
+}
+
+.site-form-item-icon {
+  margin-right: 1rem;
+}
+
+.login-form-title {
+  padding: 1rem 0 2rem;
+}
+
+.login-form-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.5s linear;
+
+  // .login-icon {
+  //   display: none;
+  //   transition: 0.5s;
+  // }
+  span {
+    position: relative;
+    transition: 0.5s;
+  }
+
+  &:hover {
+    span {
+      padding-right: 2rem;
+    }
+
+    span::after {
+      // .login-icon {
+      //   display: block;
+      // }
+      opacity: 1;
+      right: 0;
+    }
+  }
+  & span::after {
+    content: "\00bb";
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    right: -20px;
+    transition: 0.5s;
+  }
+}
