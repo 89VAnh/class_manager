@@ -1,26 +1,9 @@
-import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import config from "~/config";
-import { useAuth } from "~/hook/useAuth";
+import { HOME_URL } from "~/config/urls";
 
-import { ValidateToken } from "~/service/loginService";
+import { ValidateToken } from "~/service/user.service";
 
 export default function NotAuthenticatedRoute() {
-  const { user: token } = useAuth();
-
-  const [isValidated, setIsValidated] = useState<boolean>(false);
-
-  useEffect(() => {
-    ValidateToken(token)
-      .then(() => setIsValidated(true))
-      .catch(() => setIsValidated(false));
-  }, [token]);
-
-  // return isValidated ? (
-  //   <Navigate to={config.routes.home} replace />
-  // ) : (
-  //   <Outlet />
-  // );
-
+  // return ValidateToken() ? <Navigate to={HOME_URL} replace /> : <Outlet />;
   return <Outlet />;
 }

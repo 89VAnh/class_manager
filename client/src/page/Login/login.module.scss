@@ -1,0 +1,61 @@
+.login_left {
+  background-color: var(--yellow-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 6rem 2rem;
+
+  .school_logo {
+    width: 14rem;
+    height: 14rem;
+    background-color: var(--white-color);
+    border-radius: 100rem;
+    padding: 1rem;
+    border: 0.4rem solid #d2d2d2;
+
+    img {
+      width: 100%;
+    }
+  }
+
+  .login_left_title {
+    text-align: center;
+    color: var(--green-color);
+    font-size: 2.4rem;
+  }
+}
+
+.login_right {
+  padding: 1.5rem;
+
+  .login_right_title {
+    text-align: center;
+    color: var(--green-color);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 2.8rem;
+    font-size: 2.6rem;
+  }
+
+  .hotline {
+    margin-top: 3.2rem;
+    text-align: right;
+  }
+}
+
+.login_right_bottom {
+  margin-top: 10rem;
+}
+.login_right_bottom_left {
+  table,
+  .ant_table_cell {
+    border-color: black !important;
+  }
+}
+
+.login_form_wrapper {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  max-width: 50rem;
+}

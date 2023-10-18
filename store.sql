@@ -250,7 +250,15 @@ BEGIN
     WHERE c.Id = @Id
 END
 
-
 GO
 
--- exec sp_get_classInfo '125211'
+CREATE PROC sp_get_classes_by_lecturerId(@LecturerId NVARCHAR(50))
+AS
+BEGIN
+    SELECT c.Id, c.Name, FormTeacher = l.Name, Department = d.Name,
+        AssistantDean = dbo.func_getAssistantDeanName(d.Id), Monitor = dbo.func_getMonitorName(c.Id)
+    FROM Class c
+        INNER JOIN Lecturer l ON c.FormTeacherId = l.Id
+        INNER JOIN Department d ON c.DepartmentId = d.Id
+    WHERE l.Id = @LecturerId
+END

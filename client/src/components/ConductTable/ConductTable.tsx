@@ -1,7 +1,7 @@
 import { Table } from "antd";
 import { useContext, useEffect, useState } from "react";
-import { ConductsContext } from "~/layout/components/Conducts/Conducts";
 import { column, conduct } from "~/model/conduct";
+import { ConductsContext } from "~/page/Conduct/Conduct";
 import ConductRow from "./ConductRow";
 import EditableCell from "./EditableCell";
 import "./editable.css";

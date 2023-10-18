@@ -1,22 +1,11 @@
 import { ConfigProvider } from "antd";
-import "./App.css";
-import AuthProvider from "./components/AuthProvider/AuthProvider.tsx";
 import Routes from "./routes/index.tsx";
+import { theme } from "./theme.ts";
 
 function App() {
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: "hsl(133, 61%, 33%)",
-          borderRadius: 6,
-
-          // colorBgContainer: "#f6ffed",
-        },
-      }}>
-      <AuthProvider>
-        <Routes />
-      </AuthProvider>
+    <ConfigProvider theme={theme}>
+      <Routes />
     </ConfigProvider>
   );
 }

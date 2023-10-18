@@ -1,0 +1,28 @@
+{
+  "classes": [
+    {
+      "id": "101202",
+      "name": "",
+      "formTeacher": "Vũ Xuân Thắng",
+      "department": "Công nghệ thông tin",
+      "monitor": null,
+      "assistantDean": "Phạm Minh Chuẩn"
+    },
+    {
+      "id": "125211",
+      "name": "",
+      "formTeacher": "Vũ Xuân Thắng",
+      "department": "Công nghệ thông tin",
+      "monitor": "Nguyễn Việt Anh",
+      "assistantDean": "Phạm Minh Chuẩn"
+    },
+    {
+      "id": "12522W.1",
+      "name": "",
+      "formTeacher": "Vũ Xuân Thắng",
+      "department": "Công nghệ thông tin",
+      "monitor": null,
+      "assistantDean": "Phạm Minh Chuẩn"
+    }
+  ]
+}

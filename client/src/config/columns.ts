@@ -1,7 +1,9 @@
 import { column } from "../model/conduct";
 
-const ordinalNumberWidth = "50px";
-const studentNameWitdh = "26%";
+const ordinalNumberWidth = "5rem";
+const studentNameWitdh = "20%";
+const studentIdWitdh = "10rem";
+const birthdayWith = "10rem";
 
 export const summaryColumns: column[] = [
   {
@@ -13,6 +15,7 @@ export const summaryColumns: column[] = [
   {
     dataIndex: "studentId",
     title: "Mã HSSV",
+    width: studentIdWitdh,
   },
   {
     dataIndex: "studentName",
@@ -22,6 +25,7 @@ export const summaryColumns: column[] = [
   {
     dataIndex: "studentBirthday",
     title: "Ngày sinh",
+    width: birthdayWith,
   },
   {
     dataIndex: "i",
@@ -70,6 +74,7 @@ export const conduct1Columns: column[] = [
   {
     dataIndex: "studentId",
     title: "Mã HSSV",
+    width: studentIdWitdh,
   },
   {
     dataIndex: "studentName",
@@ -150,6 +155,7 @@ export const conduct2Columns: column[] = [
   {
     dataIndex: "studentId",
     title: "Mã HSSV",
+    width: studentIdWitdh,
   },
   {
     dataIndex: "studentName",
@@ -161,7 +167,7 @@ export const conduct2Columns: column[] = [
     title: "Ý thức chấp hành văn bản, chỉ đạo của nhà trường",
     editable: true,
     min: 0,
-    max: 6,
+    max: 3,
     align: "center",
   },
   {
@@ -169,7 +175,7 @@ export const conduct2Columns: column[] = [
     title: "Ý thức thực hiện quy chế thi, kiểm tra",
     editable: true,
     min: 0,
-    max: 2,
+    max: 4,
     align: "center",
   },
   {
@@ -177,7 +183,7 @@ export const conduct2Columns: column[] = [
     title: "Thực hiện tốt nghĩa vụ của SV trong nhà trường (học phí, BH)",
     editable: true,
     min: 0,
-    max: 2,
+    max: 6,
     align: "center",
   },
   {
@@ -223,6 +229,7 @@ export const conduct3Columns: column[] = [
   {
     dataIndex: "studentId",
     title: "Mã HSSV",
+    width: studentIdWitdh,
   },
   {
     dataIndex: "studentName",
@@ -271,6 +278,7 @@ export const conduct4Columns: column[] = [
   {
     dataIndex: "studentId",
     title: "Mã HSSV",
+    width: studentIdWitdh,
   },
   {
     dataIndex: "studentName",
@@ -303,7 +311,7 @@ export const conduct4Columns: column[] = [
     title: "Công tác từ thiện",
     editable: true,
     min: 0,
-    max: 2,
+    max: 8,
     align: "center",
   },
   {
@@ -322,6 +330,7 @@ export const conduct5Columns: column[] = [
   {
     dataIndex: "studentId",
     title: "Mã HSSV",
+    width: studentIdWitdh,
   },
   {
     dataIndex: "studentName",

@@ -1,4 +1,4 @@
-import config from "~/config";
+import { HOME_URL, LOGIN_URL } from "~/config/urls";
 import Home from "~/page/Home/Home";
 import Login from "~/page/Login/Login";
 import NotFound from "~/page/NotFound/NotFound";
@@ -12,15 +12,17 @@ const routesForPublic = [
 ];
 const routesForNotAuthenticatedOnly = [
   {
+    path: "/",
     element: <NotAuthenticatedRoute />,
-    children: [{ path: config.routes.login, element: <Login /> }],
+    children: [{ path: LOGIN_URL, element: <Login /> }],
   },
 ];
+
 const routesForAuthenticatedOnly = [
   {
     path: "/",
     element: <ProtectedRoute />,
-    children: [{ path: config.routes.home, element: <Home /> }],
+    children: [{ path: HOME_URL, element: <Home /> }],
   },
 ];
 
