@@ -69,3 +69,12 @@ export const post = async (path: string, data = {}, options = {}) => {
     throw e as AxiosError;
   }
 };
+
+export const put = async (path: string, data = {}, options = {}) => {
+  try {
+    const response = await apiClient.put(path, data, options);
+    return response;
+  } catch (e) {
+    throw e as AxiosError;
+  }
+};

@@ -1,7 +1,7 @@
 import { column } from "../model/conduct";
 
 const ordinalNumberWidth = "5rem";
-const studentNameWitdh = "20%";
+const studentNameWitdh = "16%";
 const studentIdWitdh = "10rem";
 const birthdayWith = "10rem";
 

@@ -262,3 +262,12 @@ BEGIN
         INNER JOIN Department d ON c.DepartmentId = d.Id
     WHERE l.Id = @LecturerId
 END
+
+GO
+
+CREATE PROC sp_get_schoolYear
+AS
+BEGIN
+    SELECT DISTINCT SchoolYear
+    FROM Student_Conduct
+END

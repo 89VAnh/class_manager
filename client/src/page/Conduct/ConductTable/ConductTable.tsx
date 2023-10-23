@@ -6,9 +6,13 @@ import ConductRow from "./ConductRow";
 import EditableCell from "./EditableCell";
 import "./editable.css";
 
-type Props = { columns: column[]; handleSave: CallableFunction };
+type Props = {
+  columns: column[];
+  loading: boolean;
+  handleSave: CallableFunction;
+};
 
-export default function EditableTable({ columns, handleSave }: Props) {
+export default function EditableTable({ columns, loading, handleSave }: Props) {
   const conducts = useContext<conduct[]>(ConductsContext);
   const [dataSource, setDataSource] = useState<conduct[]>([]);
 
@@ -77,7 +81,8 @@ export default function EditableTable({ columns, handleSave }: Props) {
         columns={columns}
         size='small'
         sticky
-        // loading
+        loading={loading}
+        scroll={{ y: "46rem" }}
       />
     </div>
   );

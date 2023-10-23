@@ -1,4 +1,5 @@
 import {
+  AuditOutlined,
   HomeOutlined,
   InfoCircleFilled,
   LogoutOutlined,
@@ -9,7 +10,7 @@ import { Dropdown, Image } from "antd";
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import Logo from "~/assets/logo/UTEHY_logo.png";
-import { HOME_URL } from "~/config/urls";
+import { CONDUCT_URL, HOME_URL } from "~/config/urls";
 import { SearchInput } from "./SearchInput";
 
 const defaultMenus = [
@@ -17,6 +18,11 @@ const defaultMenus = [
     path: HOME_URL,
     name: "Home",
     icon: <HomeOutlined />,
+  },
+  {
+    path: CONDUCT_URL,
+    name: "Conduct",
+    icon: <AuditOutlined />,
   },
 ];
 
@@ -50,14 +56,12 @@ export const layoutProps: ProLayoutProps = {
   title: "UTEHY",
   menuItemRender: (item, dom) => <Link to={item.path as string}>{dom}</Link>,
   logo: (
-    <Link to={HOME_URL}>
-      <Image
-        className='logo'
-        preview={false}
-        src={Logo}
-        style={{ maxWidth: 50 }}
-      />
-    </Link>
+    <Image
+      className='logo'
+      preview={false}
+      src={Logo}
+      style={{ maxWidth: 50 }}
+    />
   ),
   menu: { request: async () => defaultMenus },
   actionsRender: (props) => {

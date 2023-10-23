@@ -1,8 +1,27 @@
-import { Tabs, TabsProps, theme } from "antd";
+import {
+  DeliveredProcedureOutlined,
+  FileExcelOutlined,
+  InboxOutlined,
+} from "@ant-design/icons";
+import { ProForm, ProFormSelect } from "@ant-design/pro-components";
+import {
+  Button,
+  Col,
+  Modal,
+  Row,
+  Space,
+  Tabs,
+  TabsProps,
+  Typography,
+  Upload,
+  message,
+  notification,
+  theme,
+} from "antd";
 import dayjs from "dayjs";
 import { createContext, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import StickyBox from "react-sticky-box";
-import EditableTable from "~/components/ConductTable/ConductTable";
 import {
   conduct1Columns,
   conduct2Columns,
@@ -11,14 +30,39 @@ import {
   conduct5Columns,
   summaryColumns,
 } from "~/config/columns";
+import { BASE_URL } from "~/constant/config";
 import { conduct } from "~/model/conduct";
-// import { getConductOfClass } from "~/service/conductService";
-import { useParams } from "react-router-dom";
-import { data } from "./fakeData.json";
+import EditableTable from "~/page/Conduct/ConductTable/ConductTable";
+import { getConductOfClass, updateConducts } from "~/service/conduct.service";
+import storage from "~/utils/storage";
+import styles from "./conduct.module.scss";
+// import { data } from "./fakeData.json";
 
 export const ConductsContext = createContext<conduct[]>([]);
 
 export default function Conducts() {
+  const currentYear = dayjs().year();
+
+  const { classId } = useParams();
+  const [semester, setSemester] = useState<number | undefined>(
+    dayjs().month() >= 8 ? 1 : 2
+  );
+  const [schoolYear, setSchoolYear] = useState<string | undefined>(
+    dayjs().month() >= 8
+      ? `${currentYear}-${currentYear + 1}`
+      : `${currentYear - 1}-${currentYear}`
+  );
+  const [conducts, setConducts] = useState<conduct[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [conductsContext, setConductsContext] = useState<conduct[]>([]);
+  const [isOpenConfirmSaveModal, setIsOpenConfirmSaveModal] =
+    useState<boolean>(false);
+  const [isOpenConfirmCancelModal, setIsOpenConfirmCancelModal] =
+    useState<boolean>(false);
+  // const [noti, contextHolder] = notification.useNotification();
+
+  const { Dragger } = Upload;
+
   const completeConduct = (conduct: conduct): conduct => {
     if (!/\d+\/\d+\/\d+/.test(conduct.studentBirthday))
       conduct.studentBirthday = dayjs(conduct.studentBirthday).format(
@@ -69,7 +113,7 @@ export default function Conducts() {
     // IV
     conduct.iV = conduct.iV_1 + conduct.iV_2 + conduct.iV_3;
 
-    if (conduct.iI_3 == 0) conduct.iV -= 10;
+    if (conduct.iI_3 == 0) conduct.iV = conduct.iV > 10 ? conduct.iV - 10 : 0;
 
     if (conduct.pointAverage >= 7 || conduct.v_1 == 10) conduct.iV = 20;
 
@@ -108,77 +152,114 @@ export default function Conducts() {
       key: "1",
       label: "THKQRL",
       children: (
-        <EditableTable columns={summaryColumns} handleSave={handleSave} />
+        <EditableTable
+          loading={loading}
+          columns={summaryColumns}
+          handleSave={handleSave}
+        />
       ),
     },
     {
       key: "2",
       label: "Điểm TC 1",
       children: (
-        <EditableTable columns={conduct1Columns} handleSave={handleSave} />
+        <EditableTable
+          loading={loading}
+          columns={conduct1Columns}
+          handleSave={handleSave}
+        />
       ),
     },
     {
       key: "3",
       label: "Điểm TC 2",
       children: (
-        <EditableTable columns={conduct2Columns} handleSave={handleSave} />
+        <EditableTable
+          loading={loading}
+          columns={conduct2Columns}
+          handleSave={handleSave}
+        />
       ),
     },
     {
       key: "4",
       label: "Điểm TC 3",
       children: (
-        <EditableTable columns={conduct3Columns} handleSave={handleSave} />
+        <EditableTable
+          loading={loading}
+          columns={conduct3Columns}
+          handleSave={handleSave}
+        />
       ),
     },
     {
       key: "5",
       label: "Điểm TC 4",
       children: (
-        <EditableTable columns={conduct4Columns} handleSave={handleSave} />
+        <EditableTable
+          loading={loading}
+          columns={conduct4Columns}
+          handleSave={handleSave}
+        />
       ),
     },
     {
       key: "6",
       label: "Điểm TC 5",
       children: (
-        <EditableTable columns={conduct5Columns} handleSave={handleSave} />
+        <EditableTable
+          loading={loading}
+          columns={conduct5Columns}
+          handleSave={handleSave}
+        />
       ),
     },
   ];
 
-  const { classId } = useParams();
-  // const [semester, setSemester] = useState<string>("2");
-  // const [schoolYear, setSchoolYear] = useState<string>("2022-2023");
+  // const getConducts = () => {
+  //   setLoading(true);
 
-  const [conducts, setConducts] = useState<conduct[]>([]);
+  //   if (classId && semester && schoolYear) {
+  //     const c = data.find(
+  //       (x) =>
+  //         x.classId === classId &&
+  //         x.semester === semester &&
+  //         x.schoolYear === schoolYear
+  //     );
+  //     setConducts(c ? c.conduct.map((x: conduct) => completeConduct(x)) : []);
+  //   }
+  //   setLoading(false);
+  // };
+  const loadConducts = async () => {
+    setLoading(true);
+
+    if (classId && semester && schoolYear) {
+      let data: conduct[] = await getConductOfClass({
+        classId,
+        semester,
+        schoolYear,
+      });
+
+      data = data.map((x) => completeConduct(x));
+
+      setConducts(data);
+      setConductsContext(data);
+    }
+
+    setLoading(false);
+  };
 
   useEffect(() => {
-    //   const fetchApi = async () => {
-    //     let data: conduct[] = await getConductOfClass({
-    //       classId: "125211",
-    //       semester: "2",
-    //       schoolYear: "2022-2023",
-    //     });
+    loadConducts();
+  }, [classId, semester, schoolYear]);
 
-    //     data = data.map((x) => completeConduct(x));
-
-    //     setConducts(data);
-    //   };
-
-    //   fetchApi();
-    console.log(classId);
-
-    setConducts(data.map((x: conduct) => completeConduct(x)));
-  }, [classId]);
-
+  // render tabs
   const {
     token: { colorBgContainer },
   } = theme.useToken();
 
   const renderTabBar: TabsProps["renderTabBar"] = (props, DefaultTabBar) => (
-    <StickyBox offsetTop={0} offsetBottom={20} style={{ zIndex: 1 }}>
+    <StickyBox offsetBottom={20} style={{ zIndex: 1 }}>
       <DefaultTabBar
         {...props}
         style={{ background: colorBgContainer, position: "sticky", top: "0px" }}
@@ -186,16 +267,170 @@ export default function Conducts() {
     </StickyBox>
   );
 
+  // School year drowdown
+
+  const lenght = 6;
+
+  const schoolYearOptions = [...Array(lenght)].map((_, index) => {
+    const y = currentYear - index;
+    const schoolYear = `${y}-${y + 1}`;
+
+    return schoolYear;
+  });
+
+  const saveConducts = async () => {
+    try {
+      updateConducts(
+        conducts.filter(
+          (c, i) => JSON.stringify(c) !== JSON.stringify(conductsContext[i])
+        )
+      );
+      notification.success({ message: "Lưu thông tin thành công!" });
+    } catch {
+      notification.error({ message: "Lưu thất bại!" });
+    }
+  };
+
+  const uploadConducts = async () => {
+    console.log("Upload!!!");
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const changeFile = (info: any) => {
+    const { status } = info.file;
+    if (status !== "uploading") {
+      console.log(info.file, info.fileList);
+    }
+
+    if (status === "done") {
+      message.success(`Tải lên file ${info.file.name} thành công!`);
+      loadConducts();
+    } else if (status === "error") {
+      message.error(`Tải lên file ${info.file.name} thất bại!`);
+    }
+  };
+
   return (
-    <ConductsContext.Provider value={conducts}>
-      <Tabs
-        defaultActiveKey='1'
-        items={items}
-        type='card'
-        animated
-        renderTabBar={renderTabBar}
-        tabPosition='left'
-      />
-    </ConductsContext.Provider>
+    <>
+      <Typography.Title level={1}>
+        ĐIỂM HẠNH KIỂM LỚP {classId}
+      </Typography.Title>
+      <ProForm submitter={false} autoFocusFirstInput className={styles.form}>
+        <Row justify='space-between'>
+          <Col>
+            <Space size='large'>
+              <ProFormSelect
+                options={[
+                  {
+                    value: 1,
+                    label: "Kỳ 1",
+                  },
+                  {
+                    value: 2,
+                    label: "Kỳ 2",
+                  },
+                ]}
+                width='sm'
+                placeholder='Kỳ học'
+                initialValue={semester}
+                name='semester'
+                label='Kỳ học :'
+                onChange={setSemester}></ProFormSelect>
+              <ProFormSelect
+                options={schoolYearOptions}
+                width='sm'
+                placeholder='Năm học'
+                name='schoolYear'
+                label='Năm học :'
+                onChange={setSchoolYear}
+                initialValue={schoolYear}
+              />
+            </Space>
+          </Col>
+          {conducts.length != 0 && (
+            <Col>
+              <Space size='large'>
+                <Button
+                  type='primary'
+                  onClick={uploadConducts}
+                  icon={<FileExcelOutlined />}>
+                  Xuất file
+                </Button>
+                <Button
+                  type='primary'
+                  onClick={() => setIsOpenConfirmSaveModal(true)}
+                  icon={<DeliveredProcedureOutlined />}>
+                  Lưu
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsOpenConfirmCancelModal(true);
+                  }}>
+                  Huỷ
+                </Button>
+              </Space>
+            </Col>
+          )}
+        </Row>
+
+        {conducts.length === 0 && !!semester && !!schoolYear ? (
+          <Dragger
+            action={`${BASE_URL}Files/Transcript?Semester=${semester}&SchoolYear=${schoolYear}&ClassId=${classId}`}
+            headers={{
+              authorization: "Bearer " + storage.getToken(),
+            }}
+            name='file'
+            onChange={changeFile}
+            accept='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'>
+            <p className='ant-upload-drag-icon'>
+              <InboxOutlined />
+            </p>
+            <p className='ant-upload-text'>Nhấn hoặc thả file để upload file</p>
+            <p className='ant-upload-hint'>
+              {`Vui lòng tải lên file bảng điểm của lớp ${classId} học kỳ ${semester} năm học ${schoolYear}`}
+            </p>
+          </Dragger>
+        ) : (
+          <ConductsContext.Provider value={conducts}>
+            <Tabs
+              defaultActiveKey='1'
+              items={items}
+              type='card'
+              animated
+              renderTabBar={renderTabBar}
+              tabPosition='left'
+            />
+          </ConductsContext.Provider>
+        )}
+      </ProForm>
+
+      <Modal
+        title='Xác nhận lưu thông tin'
+        open={isOpenConfirmSaveModal}
+        onOk={() => {
+          saveConducts();
+          setIsOpenConfirmSaveModal(false);
+        }}
+        onCancel={() => setIsOpenConfirmSaveModal(false)}
+        okText='Lưu thay đổi'
+        cancelText='Thoát'>
+        <h4>Bạn có chắc chắn muốn lưu thông tin điểm hạnh kiểm không?</h4>
+      </Modal>
+      <Modal
+        title='Xác nhận huỷ thay đổi'
+        open={isOpenConfirmCancelModal}
+        onOk={() => {
+          loadConducts();
+          setIsOpenConfirmCancelModal(false);
+        }}
+        onCancel={() => setIsOpenConfirmCancelModal(false)}
+        okText='Huỷ thay đổi'
+        cancelText='Thoát'>
+        <h4>
+          Bạn có chắc chắn muốn huỷ những thay đổi của bảng điểm hạnh kiểm này
+          không?
+        </h4>
+      </Modal>
+    </>
   );
 }
