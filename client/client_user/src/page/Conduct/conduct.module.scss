@@ -1,0 +1,16 @@
+.form {
+  :global {
+    .ant-form-item-row {
+      flex-direction: row;
+      align-items: center;
+
+      .ant-form-item-label {
+        padding: 0;
+      }
+
+      .ant-form-item-control {
+        width: inherit;
+      }
+    }
+  }
+}
