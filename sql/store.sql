@@ -309,3 +309,48 @@ BEGIN
     SET [Password]=@password
     WHERE Username=@username
 END
+GO
+
+CREATE PROC sp_class_search(@page_index  INT,
+    @page_size   INT,
+    @id NVARCHAR(50),
+    @name NVARCHAR(50))
+AS
+BEGIN
+    DECLARE @RecordCount BIGINT;
+    IF(@page_size <> 0)
+            BEGIN
+        SET NOCOUNT ON;
+        SELECT(ROW_NUMBER() OVER(
+                              ORDER BY cl.Name ASC)) AS RowNumber,
+            cl.*
+        INTO #Results1
+        FROM [Class] AS cl
+        WHERE (@name IS NULL OR @name = '' OR (cl.Name LIKE '%' + @name + '%')) AND (@id IS NULL OR @id = '' OR (cl.Id LIKE '%' + @id + '%'))
+        SELECT @RecordCount = COUNT(*)
+        FROM #Results1;
+        SELECT *,
+            @RecordCount AS RecordCount
+        FROM #Results1
+        WHERE ROWNUMBER BETWEEN(@page_index - 1) * @page_size + 1 AND(((@page_index - 1) * @page_size + 1) + @page_size) - 1
+            OR @page_index = -1;
+        DROP TABLE #Results1;
+    END;
+            ELSE
+            BEGIN
+        SET NOCOUNT ON;
+        SELECT(ROW_NUMBER() OVER(
+                              ORDER BY cl.Name ASC)) AS RowNumber,
+            cl.*
+        INTO #Results2
+        FROM [Class] AS cl
+        WHERE (@name IS NULL OR (@name = '') OR (cl.Name LIKE '%' + @name + '%')) AND (@id IS NULL OR @id = '' OR (cl.Id LIKE '%' + @id + '%'))
+        SELECT @RecordCount = COUNT(*)
+        FROM #Results2;
+        SELECT *,
+            @RecordCount AS RecordCount
+        FROM #Results2;
+        DROP TABLE #Results2;
+    END;
+END;
+GO
