@@ -1,5 +1,6 @@
-import { CONDUCT_URL, HOME_URL, LOGIN_URL } from "~/config/urls";
+import { CLASS_URL, CONDUCT_URL, HOME_URL, LOGIN_URL } from "~/config/urls";
 import AppLayout from "~/layout/AppLayout";
+import Class from "~/page/Class/Class";
 import Conduct from "~/page/Conduct/Conduct";
 import Home from "~/page/Home/Home";
 import Login from "~/page/Login/Login";
@@ -14,6 +15,10 @@ const routes = [
       {
         path: `${CONDUCT_URL}/:classId`,
         element: <Conduct />,
+      },
+      {
+        path: `${CLASS_URL}/:classId`,
+        element: <Class />,
       },
     ],
   },

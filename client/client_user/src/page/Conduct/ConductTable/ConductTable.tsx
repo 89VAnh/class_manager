@@ -4,7 +4,7 @@ import { column, conduct } from "~/model/conduct";
 import { ConductsContext } from "~/page/Conduct/Conduct";
 import ConductRow from "./ConductRow";
 import EditableCell from "./EditableCell";
-import "./editable.css";
+import "./editable.module.scss";
 
 type Props = {
   columns: column[];

@@ -7,7 +7,7 @@ import { KeyOutlined, LogoutOutlined } from "@ant-design/icons";
 import { Dropdown, message } from "antd";
 import { ReactNode, useState } from "react";
 import { LOCAL_USER } from "~/constant/config";
-import { ChangePassword } from "~/service/user.service";
+import { changePassword } from "~/service/user.service";
 import { storageService } from "~/utils/storage";
 import { Logout } from "~/utils/user";
 import { RULES_FORM } from "~/utils/validator";
@@ -68,7 +68,7 @@ export default function AppLayout({ children }: Props): JSX.Element {
         onOpenChange={setIsChangePw}
         onFinish={async (value: Record<string, string>) => {
           try {
-            await ChangePassword({
+            await changePassword({
               ...value,
               username: storageService.getStorage(LOCAL_USER).username,
             });

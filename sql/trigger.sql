@@ -1,9 +1,9 @@
 
-CREATE TRIGGER trg_AddAccount_INSERT_Lecturer
+CREATE TRIGGER trg_add_Account_INSERT_Lecturer
 ON Lecturer
 AFTER INSERT 
 AS
-BEGIN
+BEGIN 
     DECLARE @LecturerId NVARCHAR(10);
     DECLARE @LecturerName NVARCHAR(150);
     DECLARE @LecturerEmail NVARCHAR(200);
@@ -32,7 +32,7 @@ END
 
 GO
 
-CREATE TRIGGER trg_DeleteAccount_DELETE_Lecturer
+CREATE TRIGGER trg_delete_Account_DELETE_Lecturer
 ON Lecturer
 AFTER DELETE 
 AS
@@ -44,13 +44,14 @@ BEGIN
 END
 GO
 
-CREATE TRIGGER trg_InsertConduct_INSERT_Class_Student
+CREATE TRIGGER trg_insert_Conduct_INSERT_Class_Student
 ON Class_Student
 AFTER INSERT
 AS
 BEGIN
     DECLARE @StudentId NVARCHAR(10);
-    DECLARE @Semester INT;
+
+DECLARE @Semester TINYINT;
     DECLARE @SchoolYear NVARCHAR(50);
 
     DECLARE CUR_Student CURSOR FOR
@@ -87,7 +88,7 @@ END
 
 GO
 
-CREATE TRIGGER trg_DeleteConduct_DELETE_Student
+CREATE TRIGGER trg_delete_Conduct_DELETE_Student
 ON Class_Student
 FOR DELETE
 AS
@@ -100,5 +101,4 @@ BEGIN
         )
 )
 END
-
 GO

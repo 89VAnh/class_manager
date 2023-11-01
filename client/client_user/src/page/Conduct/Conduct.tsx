@@ -1,7 +1,6 @@
 import {
   DeliveredProcedureOutlined,
   FileExcelOutlined,
-  InboxOutlined,
 } from "@ant-design/icons";
 import { ProForm, ProFormSelect } from "@ant-design/pro-components";
 import {
@@ -13,7 +12,6 @@ import {
   Tabs,
   TabsProps,
   Typography,
-  Upload,
   notification,
   theme,
 } from "antd";
@@ -21,6 +19,7 @@ import dayjs from "dayjs";
 import { createContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import StickyBox from "react-sticky-box";
+import TranscriptDragger from "~/components/TranscriptDragger/TranscriptDragger";
 import {
   conduct1Columns,
   conduct2Columns,
@@ -29,22 +28,20 @@ import {
   conduct5Columns,
   summaryColumns,
 } from "~/config/columns";
-import { BASE_URL } from "~/constant/config";
 import { conduct } from "~/model/conduct";
 import EditableTable from "~/page/Conduct/ConductTable/ConductTable";
+import { getMonitorOfClass } from "~/service/class.service";
 import {
   exportConductFile,
   getConductOfClass,
   updateConducts,
 } from "~/service/conduct.service";
-import storage from "~/utils/storage";
 import styles from "./conduct.module.scss";
 
 export const ConductsContext = createContext<conduct[]>([]);
 
 export default function Conducts() {
   const currentYear = dayjs().year();
-
   const { classId } = useParams();
   const [semester, setSemester] = useState<number | undefined>(
     dayjs().month() >= 8 ? 1 : 2
@@ -62,8 +59,6 @@ export default function Conducts() {
   const [isOpenConfirmCancelModal, setIsOpenConfirmCancelModal] =
     useState<boolean>(false);
   const [monitorId, setMonitorId] = useState<string | undefined>(undefined);
-
-  const { Dragger } = Upload;
 
   const completeConduct = (conduct: conduct): conduct => {
     if (!/\d+\/\d+\/\d+/.test(conduct.studentBirthday))
@@ -232,6 +227,8 @@ export default function Conducts() {
 
       setConducts(data);
       setConductsContext(data);
+
+      setMonitorId(await getMonitorOfClass(classId, semester, schoolYear));
     }
 
     setLoading(false);
@@ -239,6 +236,7 @@ export default function Conducts() {
 
   useEffect(() => {
     loadConducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId, semester, schoolYear]);
 
   // render tabs
@@ -298,23 +296,6 @@ export default function Conducts() {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const changeFile = (info: any) => {
-    const { status } = info.file;
-    if (status !== "uploading") {
-      console.log(info.file, info.fileList);
-    }
-
-    if (status === "done") {
-      notification.success({
-        message: `Tải lên file ${info.file.name} thành công!`,
-      });
-      loadConducts();
-    } else if (status === "error") {
-      notification.error({
-        message: `Tải lên file ${info.file.name} thất bại!`,
-      });
-    }
-  };
 
   return (
     <>
@@ -351,17 +332,20 @@ export default function Conducts() {
                 onChange={setSchoolYear}
                 initialValue={schoolYear}
               />
-              <ProFormSelect
-                options={conducts.map((x) => ({
-                  value: x.studentId,
-                  label: x.studentId + " - " + x.studentName,
-                }))}
-                width='sm'
-                placeholder='Lớp trưởng'
-                name='monitor'
-                label='Lớp trưởng'
-                onChange={setMonitorId}
-              />
+              {conducts.length && (
+                <ProFormSelect
+                  options={conducts.map((x) => ({
+                    value: x.studentId,
+                    label: x.studentId + " - " + x.studentName,
+                  }))}
+                  initialValue={monitorId}
+                  width='sm'
+                  placeholder='Lớp trưởng'
+                  name='monitor'
+                  label='Lớp trưởng'
+                  onChange={setMonitorId}
+                />
+              )}
             </Space>
           </Col>
           {conducts.length != 0 && (
@@ -391,22 +375,12 @@ export default function Conducts() {
         </Row>
 
         {conducts.length === 0 && !!semester && !!schoolYear ? (
-          <Dragger
-            action={`${BASE_URL}Files/Transcript?Semester=${semester}&SchoolYear=${schoolYear}&ClassId=${classId}`}
-            headers={{
-              authorization: "Bearer " + storage.getToken(),
-            }}
-            name='file'
-            onChange={changeFile}
-            accept='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'>
-            <p className='ant-upload-drag-icon'>
-              <InboxOutlined />
-            </p>
-            <p className='ant-upload-text'>Nhấn hoặc thả file để upload file</p>
-            <p className='ant-upload-hint'>
-              {`Vui lòng tải lên file bảng điểm của lớp ${classId} học kỳ ${semester} năm học ${schoolYear}`}
-            </p>
-          </Dragger>
+          <TranscriptDragger
+            classId={classId!}
+            semester={semester}
+            schoolYear={schoolYear}
+            loadData={loadConducts}
+          />
         ) : (
           <ConductsContext.Provider value={conducts}>
             <Tabs

@@ -1,5 +1,6 @@
 
-CREATE PROC sp_course_create
+-- Course
+CREATE PROC sp_create_course
     (@Id NVARCHAR(50),
     @Name NVARCHAR(150),
     @NumOfCredits INT)
@@ -17,7 +18,8 @@ END
 
 GO
 
-CREATE  PROC sp_student_create_or_update
+-- Student
+CREATE  PROC sp_create_student
     (
     @Id NVARCHAR(50),
     @Name NVARCHAR(150),
@@ -27,36 +29,73 @@ CREATE  PROC sp_student_create_or_update
     @Address NVARCHAR(250))
 AS
 BEGIN
-    IF NOT EXISTS (SELECT 1
-    FROM Student
-    WHERE Id = @Id)
-    BEGIN
         INSERT INTO Student
             (Id, Name, Birthday, Email, Phone, Address)
         VALUES
             (@Id, @Name, @Birthday, @Email, @Phone, @Address);
+END
+GO
+
+CREATE PROC sp_search_student
+     @page_index INT,
+    @page_size INT,
+    @student_name NVARCHAR(150) = NULL,
+    @student_id NVARCHAR(50) = NULL,
+    @email NVARCHAR(200) = NULL,
+    @phone NVARCHAR(20) = NULL,
+    @class_id NVARCHAR(50)= NULL,
+    @semester TINYINT = NULL,
+    @schoolYear NVARCHAR(50) = NULL
+AS
+ DECLARE @RecordCount BIGINT;
+    SET NOCOUNT ON; 
+    SELECT
+            (ROW_NUMBER() OVER (ORDER BY dbo.func_reverseName(s.Name) COLLATE Vietnamese_CI_AS)) AS RowNumber,
+            Id AS StudentId,
+            Name AS StudentName,
+            Birthday,
+            Email,
+            Phone,
+            Address
+        INTO #Results
+        FROM Student s INNER JOIN Class_Student sc ON s.Id = sc.StudentId
+        WHERE
+            (@class_id IS NULL OR @semester IS NULL OR @schoolYear IS NULL OR sc.ClassId = @class_id AND sc.Semester = @semester AND sc.SchoolYear = @schoolYear) AND
+            (@student_name IS NULL OR Name LIKE '%' + @student_name + '%')
+            AND (@student_id IS NULL OR Id LIKE '%' + @student_id + '%')
+            AND (@email IS NULL OR Email LIKE '%' + @email + '%')
+            AND (@phone IS NULL OR Phone LIKE '%' +  @phone + '%');
+        SELECT @RecordCount = COUNT(*)
+        FROM #Results;
+
+    IF @page_size <> 0
+    BEGIN
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results
+        WHERE RowNumber BETWEEN (@page_index - 1) * @page_size + 1 AND ((@page_index - 1) * @page_size + 1) + @page_size - 1
+            OR @page_index = -1;
     END
     ELSE
     BEGIN
-        UPDATE Student
-        SET 
-            Name = @Name,
-            Birthday = @Birthday,
-            Email = @Email,
-            Phone = @Phone,
-            Address = @Address
-        WHERE Id = @Id;
-    END
-END
-
+        
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results;
+    END;
+        DROP TABLE #Results;
 GO
 
--- CREATE 
-ALTER PROCEDURE sp_student_class_create
+CREATE PROCEDURE sp_create_student_class(
     @ClassId NVARCHAR(50),
-    @Semester INT,
+
+@Semester TINYINT,
     @SchoolYear NVARCHAR(50),
-    @list_json_student NVARCHAR(MAX)
+
+@list_json_student NVARCHAR
+(MAX))
 AS
 BEGIN
     IF(@list_json_student IS NOT NULL)
@@ -70,7 +109,6 @@ BEGIN
             Phone NVARCHAR(20),
             Address NVARCHAR(255)
         );
-
 
         INSERT INTO #TempStudentData
             (Id, Name, Birthday, Email, Phone, Address)
@@ -97,25 +135,23 @@ BEGIN
         VALUES (source.Id, source.Name, source.Birthday, source.Email, source.Phone, source.Address);
     END
 
-    INSERT INTO Class_Student
-
-        (ClassId, StudentId, Semester, SchoolYear
-        )
+    INSERT INTO Class_Student(ClassId, StudentId, Semester, SchoolYear)
     SELECT @ClassId, Id, @Semester, @SchoolYear
     FROM #TempStudentData;
 
     DROP TABLE #TempStudentData;
 END;
 
-
 GO
 
-CREATE PROC sp_transcript_create
+--Transcript
+CREATE PROC sp_create_transcript
     @StudentId NVARCHAR(50),
     @CourseId NVARCHAR(50),
     @Point FLOAT,
     @Grade NVARCHAR(5),
-    @Semester INT,
+
+@Semester TINYINT,
     @SchoolYear NVARCHAR(50)
 AS
 BEGIN
@@ -126,48 +162,22 @@ BEGIN
 END;
 GO
 
-GO
-
-CREATE PROC sp_get_ConductOfClass(@ClassId NVARCHAR(50),
-    @Semester INT,
-    @SchoolYear NVARCHAR(50)
-)
+-- Conduct
+CREATE PROC sp_get_conducts(
+@semester TINYINT,
+    @schoolYear NVARCHAR(50),
+    @list_json_studentId NVARCHAR
+(MAX))
 AS
 BEGIN
-    WITH
-        CTE_Students
-        AS
-        (
-            SELECT s.Id, s.Name, s.Birthday
-            FROM
-                Student s
-                INNER JOIN
-                (SELECT StudentId
-                FROM Class_Student
-                WHERE ClassId = @ClassId AND Semester = @Semester
-                    AND SchoolYear = @SchoolYear) cs
-                ON s.Id = cs.StudentId
-
-        ),
-        CTE_Conducts
-        AS
-        (
-            SELECT c.*
-            FROM Conduct c INNER JOIN Student_Conduct sc ON c.Id = sc.ConductId
-            WHERE sc.Semester = @Semester AND sc.SchoolYear = @SchoolYear
-
-        )
-
-    SELECT ROW_NUMBER() OVER (ORDER BY dbo.func_reverseName(s.Name) COLLATE Vietnamese_CI_AS) AS OrdinalNumber, s.Id AS StudentId, s.Name AS StudentName, s.Birthday AS StudentBirthday, dbo.func_getPointAverage(s.Id,@Semester,@SchoolYear) AS PointAverage, dbo.func_getTotalNumOfCredits(s.Id,@Semester,@SchoolYear) AS TotalNumOfCredits, dbo.func_getTotalNumOfFailCredits(s.Id,@Semester,@SchoolYear) AS TotalNumOfFailCredits, c.*
-    FROM CTE_Students s INNER JOIN Student_Conduct sc ON s.Id = sc.StudentId
-
-        INNER JOIN CTE_Conducts c ON sc.ConductId = c.Id
+SELECT [value] AS studentId
+FROM OPENJSON(@list_json_studentId, '$.ids') s INNER JOIN Student_Conduct sc ON s.[value] = sc.StudentId
+INNER JOIN Conduct c ON sc.ConductId = c.Id
+WHERE sc.SchoolYear = @schoolYear AND sc.Semester = @semester
 END
 
 GO
-
-GO
-CREATE PROC sp_conduct_update(
+CREATE PROC sp_update_conduct(
     @Id INT,
     @I_1 INT,
     @I_2 INT,
@@ -211,10 +221,12 @@ END
 
 GO
 
+-- Monitor
 CREATE PROC sp_monitor_create_or_update(
     @ClassId NVARCHAR(50),
     @MonitorId NVARCHAR(50),
-    @Semester INT  ,
+
+@Semester TINYINT  ,
     @SchoolYear NVARCHAR(50)
 )
 AS
@@ -233,19 +245,60 @@ BEGIN
         UPDATE Monitor SET MonitorId = @MonitorId WHERE ClassId = @ClassId AND Semester = @Semester AND SchoolYear = @SchoolYear
     END
 END
-
 GO
 
-CREATE PROC sp_account_get_by_username_password(
+-- Account
+CREATE PROC sp_account_search(
+    @page_index INT,
+    @page_size INT,
     @username NVARCHAR(10),
-    @password NVARCHAR(200)
+    @password NVARCHAR(200),
+    @email NVARCHAR(200)
 )
 AS
 BEGIN
-    SELECT TOP 1
-        *
-    FROM Account
-    WHERE Username = @username AND Password = @password
+   DECLARE @RecordCount BIGINT;
+    SET NOCOUNT ON; 
+    SELECT
+            (ROW_NUMBER() OVER (ORDER BY Id)) AS RowNumber,
+            *
+        INTO #Results
+        FROM Account
+        WHERE
+            (@username IS NULL OR Username LIKE '%' + @username + '%')
+            AND (@password IS NULL OR [Password] LIKE '%' + @password + '%')
+            AND (@email IS NULL OR Email LIKE '%' + @email + '%')
+
+        SELECT @RecordCount = COUNT(*)
+        FROM #Results;
+
+    IF @page_size <> 0
+    BEGIN
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results
+        WHERE RowNumber BETWEEN (@page_index - 1) * @page_size + 1 AND ((@page_index - 1) * @page_size + 1) + @page_size - 1
+            OR @page_index = -1;
+    END
+    ELSE
+    BEGIN
+        
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results;
+    END;
+        DROP TABLE #Results;
+END
+GO
+
+CREATE PROC sp_login
+    @username NVARCHAR(10),
+    @password NVARCHAR(200)
+AS
+BEGIN
+    SELECT TOP 1 * FROM Account WHERE Username = @username AND [Password] = @password
 END
 
 GO
@@ -260,43 +313,6 @@ BEGIN
     FROM Account
     WHERE Username = @username
 END
-
-GO
-
-GO
-
-CREATE PROC sp_get_classInfo(@Id NVARCHAR(50))
-AS
-BEGIN
-    SELECT c.Id, c.Name, FormTeacher = l.Name, Department = d.Name,
-        AssistantDean = dbo.func_getAssistantDeanName(d.Id), Monitor = dbo.func_getMonitorName(@Id)
-    FROM Class c INNER JOIN Lecturer l ON c.FormTeacherId = l.Id
-        INNER JOIN Department d ON c.DepartmentId = d.Id
-    WHERE c.Id = @Id
-END
-
-GO
-
-CREATE PROC sp_get_classes_by_lecturerId(@LecturerId NVARCHAR(50))
-AS
-BEGIN
-    SELECT c.Id, c.Name, FormTeacher = l.Name, Department = d.Name,
-        AssistantDean = dbo.func_getAssistantDeanName(d.Id), Monitor = dbo.func_getMonitorName(c.Id)
-    FROM Class c
-        INNER JOIN Lecturer l ON c.FormTeacherId = l.Id
-        INNER JOIN Department d ON c.DepartmentId = d.Id
-    WHERE l.Id = @LecturerId
-END
-
-GO
-
-CREATE PROC sp_get_schoolYear
-AS
-BEGIN
-    SELECT DISTINCT SchoolYear
-    FROM Student_Conduct
-END
-
 GO
 
 CREATE PROC sp_account_changePassword(
@@ -309,6 +325,39 @@ BEGIN
     SET [Password]=@password
     WHERE Username=@username
 END
+GO
+
+-- Class
+CREATE PROC sp_get_classInfo(@Id NVARCHAR(50),@Semester TINYINT, @SchoolYear NVARCHAR(50))
+AS
+BEGIN
+    SELECT c.Id, c.Name, FormTeacher = l.Name, Department = d.Name,
+
+AssistantDean
+= dbo.func_getAssistantDeanName
+(d.Id), Monitor = dbo.func_getMonitorName
+(@Id,@Semester,@SchoolYear)
+    FROM Class c INNER JOIN Lecturer l ON c.FormTeacherId = l.Id
+        INNER JOIN Department d ON c.DepartmentId = d.Id
+    WHERE c.Id = @Id
+END
+GO
+
+
+GO
+
+CREATE PROC sp_get_monitor_of_class(@ClassId NVARCHAR(50),@Semester TINYINT, @SchoolYear NVARCHAR(50))
+AS
+BEGIN
+
+SELECT MonitorId
+FROM Monitor
+WHERE ClassId = @ClassId AND Semester = @Semester AND SchoolYear = @SchoolYear
+END
+GO
+
+EXEC sp_get_monitor_of_class '125211',2,'2022-2023'
+
 GO
 
 CREATE PROC sp_class_search(@page_index  INT,

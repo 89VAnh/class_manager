@@ -2,7 +2,7 @@ import { Form, Input, InputNumber, InputRef } from "antd";
 import { ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { conduct } from "~/model/conduct";
 import { EditableContext } from "./ConductRow";
-import "./editable.css";
+import "./editable.module.scss";
 
 type Props = {
   title: ReactNode;

@@ -1,5 +1,5 @@
 
-CREATE FUNCTION func_getPointAverage (@StudentId NVARCHAR(50),@Semester INT,@SchoolYear NVARCHAR(50))
+CREATE FUNCTION func_get_pointAverage (@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
 RETURNS FLOAT
 AS
 BEGIN
@@ -29,7 +29,7 @@ BEGIN
 END
 
 GO
-CREATE  FUNCTION func_getTotalNumOfCredits(@StudentId NVARCHAR(50),@Semester INT,@SchoolYear NVARCHAR(50))
+CREATE  FUNCTION func_get_totalNumOfCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
 RETURNS INT
 AS
 BEGIN
@@ -47,7 +47,7 @@ END
 
 GO
 
-CREATE FUNCTION func_getFailCredits(@StudentId NVARCHAR(50),@Semester INT,@SchoolYear NVARCHAR(50))
+CREATE FUNCTION func_get_failCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
 RETURNS TABLE
 AS 
 RETURN SELECT c.Name, c.NumOfCredits
@@ -60,7 +60,7 @@ WHERE StudentId = @StudentId
 
 GO
 
-CREATE FUNCTION func_getTotalNumOfFailCredits(@StudentId NVARCHAR(50),@Semester INT,@SchoolYear NVARCHAR(50))
+CREATE FUNCTION func_get_totalNumOfFailCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
 RETURNS INT
 AS
 BEGIN
@@ -93,17 +93,10 @@ BEGIN
     RETURN @Result
 END
 
-GO
-
-CREATE FUNCTION func_getClasses(@FormTeacherId NVARCHAR(10))
-RETURNS TABLE
-RETURN SELECT Id
-FROM Class
-WHERE FormTeacherId = @FormTeacherId
 
 GO
 
-CREATE FUNCTION func_getAssistantDeanName(@DepartmentId NVARCHAR(50))
+CREATE FUNCTION func_get_assistantDeanName(@DepartmentId NVARCHAR(50))
 RETURNS NVARCHAR(150)
 BEGIN
     DECLARE @name NVARCHAR(150);
@@ -117,7 +110,7 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION func_getMonitorName(@ClassId NVARCHAR(50))
+CREATE FUNCTION func_get_monitorName(@ClassId NVARCHAR(50),@Semester TINYINT, @SchoolYear  NVARCHAR(50))
 RETURNS NVARCHAR(150)
 BEGIN
     DECLARE @name NVARCHAR(150);
@@ -125,10 +118,9 @@ BEGIN
     SELECT @name  = s.Name
     FROM Monitor m
         INNER JOIN Student s ON m.MonitorId = s.Id
-    WHERE m.ClassId = @ClassId
+WHERE m
+.ClassId = @ClassId AND m.Semester = @Semester AND m.SchoolYear = @SchoolYear
 
     RETURN @name
 END
- GO
-
-PRINT dbo.func_getMonitorName('125211')
+GO
