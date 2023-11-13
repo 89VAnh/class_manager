@@ -8,14 +8,14 @@ import { ProLayoutProps } from "@ant-design/pro-components";
 import { Image } from "antd";
 import { Link } from "react-router-dom";
 import Logo from "~/assets/logo/UTEHY_logo.png";
-import { CONDUCT_URL, HOME_URL } from "~/config/urls";
+import { CLASS_URL, CONDUCT_URL, HOME_URL } from "~/config/urls";
 
 import { SearchInput } from "./SearchInput";
 
 const defaultMenus = [
   {
-    path: HOME_URL,
-    name: "Trang chủ",
+    path: CLASS_URL,
+    name: "Quản lý lớp học",
     icon: <HomeOutlined />,
   },
   {

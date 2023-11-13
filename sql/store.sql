@@ -1,5 +1,49 @@
 
 -- Course
+CREATE PROC sp_create_multi_course
+    @ClassId NVARCHAR(50),
+    @Semester INT,
+    @SchoolYear NVARCHAR(50),
+    @list_json_course NVARCHAR(MAX)
+AS
+BEGIN
+    IF(@list_json_course IS NOT NULL)
+    BEGIN
+        CREATE TABLE #TempCourse
+        (
+            Id NVARCHAR(50) PRIMARY KEY,
+            Name NVARCHAR(150) NOT NULL,
+            NumOfCredits INT
+        );
+
+        INSERT INTO #TempCourse
+            (Id, Name, NumOfCredits)
+        SELECT JSON_VALUE(p.value, '$.id'),
+            JSON_VALUE(p.value, '$.name'),
+            JSON_VALUE(p.value, '$.numOfCredits')
+        FROM OPENJSON(@list_json_course) AS p;
+
+        MERGE INTO Course AS target
+    USING #TempCourse AS source
+    ON target.Id = source.Id
+    WHEN MATCHED THEN
+        UPDATE SET
+            target.Name = source.Name,
+            target.NumOfCredits = source.NumOfCredits
+    WHEN NOT MATCHED THEN
+        INSERT (Id, Name,NumOfCredits)
+        VALUES (source.Id, source.Name, source.NumOfCredits);
+    END
+
+    INSERT INTO Class_Course(ClassId, CourseId, Semester, SchoolYear)
+    SELECT @ClassId, Id, @Semester, @SchoolYear
+    FROM #TempCourse;
+
+    DROP TABLE #TempCourse;
+END;
+
+GO
+
 CREATE PROC sp_create_course
     (@Id NVARCHAR(50),
     @Name NVARCHAR(150),
@@ -15,11 +59,36 @@ BEGIN
             (@Id, @Name, @NumOfCredits)
     END
 END
+GO
+
+CREATE PROC sp_get_course(
+    @class_id NVARCHAR(50),
+    @semester TINYINT ,
+    @schoolYear NVARCHAR(50) )
+AS
+BEGIN
+    SELECT c.* FROM Course c INNER JOIN Class_Course cc ON c.Id = cc.CourseId 
+    WHERE cc.ClassId = @class_id AND cc.Semester = @semester AND cc.SchoolYear = @schoolYear
+END
+GO
+EXEC sp_get_course '125211',2,'2022-2023'
+
+SELECT * FROM Class_Course
+SELECT * FROM Course
+
+GO
+-- AssistantDean
+CREATE PROC sp_get_AssistantDean_by_departmentId (@departmentId NVARCHAR(50))
+AS
+BEGIN
+    SELECT l.Id,l.Name FROM Lecturer l INNER JOIN AssistantDean a ON l.Id = a.LecturerId 
+    WHERE a.DepartmentId = @departmentId
+END
 
 GO
 
 -- Student
-CREATE  PROC sp_create_student
+CREATE PROC sp_student_create_or_update
     (
     @Id NVARCHAR(50),
     @Name NVARCHAR(150),
@@ -29,11 +98,33 @@ CREATE  PROC sp_create_student
     @Address NVARCHAR(250))
 AS
 BEGIN
+    IF NOT EXISTS (SELECT 1
+    FROM Student
+    WHERE Id = @Id)
+    BEGIN
         INSERT INTO Student
             (Id, Name, Birthday, Email, Phone, Address)
         VALUES
             (@Id, @Name, @Birthday, @Email, @Phone, @Address);
+    END
 END
+GO
+CREATE PROC sp_get_student_by_id
+    @student_id NVARCHAR(50)
+AS
+BEGIN
+    SELECT
+            Id,
+            Name,
+            Birthday,
+            Email,
+            Phone,
+            Address
+    FROM
+        Student
+    WHERE
+        Id = @student_id;
+END;
 GO
 
 CREATE PROC sp_search_student
@@ -47,16 +138,11 @@ CREATE PROC sp_search_student
     @semester TINYINT = NULL,
     @schoolYear NVARCHAR(50) = NULL
 AS
- DECLARE @RecordCount BIGINT;
+    DECLARE @RecordCount BIGINT;
     SET NOCOUNT ON; 
     SELECT
             (ROW_NUMBER() OVER (ORDER BY dbo.func_reverseName(s.Name) COLLATE Vietnamese_CI_AS)) AS RowNumber,
-            Id AS StudentId,
-            Name AS StudentName,
-            Birthday,
-            Email,
-            Phone,
-            Address
+            s.*
         INTO #Results
         FROM Student s INNER JOIN Class_Student sc ON s.Id = sc.StudentId
         WHERE
@@ -88,7 +174,7 @@ AS
         DROP TABLE #Results;
 GO
 
-CREATE PROCEDURE sp_create_student_class(
+CREATE PROC sp_create_student_class(
     @ClassId NVARCHAR(50),
 
 @Semester TINYINT,
@@ -141,14 +227,26 @@ BEGIN
 
     DROP TABLE #TempStudentData;
 END;
+GO
 
+CREATE PROC sp_get_fail_courses(@studentId NVARCHAR(50),@semester TINYINT,@schoolYear NVARCHAR(50))
+AS 
+BEGIN
+SELECT c.*
+FROM Transcript t INNER JOIN Course c
+    ON t.CourseId = c.Id
+WHERE StudentId = @studentId
+    AND Semester = @semester
+    AND SchoolYear = @schoolYear
+    AND t.Grade = 'F'
+END
 GO
 
 --Transcript
 CREATE PROC sp_create_transcript
     @StudentId NVARCHAR(50),
     @CourseId NVARCHAR(50),
-    @Point FLOAT,
+    @Score FLOAT,
     @Grade NVARCHAR(5),
 
 @Semester TINYINT,
@@ -156,24 +254,41 @@ CREATE PROC sp_create_transcript
 AS
 BEGIN
     INSERT INTO Transcript
-        (StudentId, CourseId, Point, Grade, Semester, SchoolYear)
+        (StudentId, CourseId, Score, Grade, Semester, SchoolYear)
     VALUES
-        (@StudentId, @CourseId, ROUND(@Point,2), @Grade, @Semester, @SchoolYear);
+        (@StudentId, @CourseId, ROUND(@Score,2), @Grade, @Semester, @SchoolYear);
 END;
 GO
 
--- Conduct
-CREATE PROC sp_get_conducts(
-@semester TINYINT,
-    @schoolYear NVARCHAR(50),
-    @list_json_studentId NVARCHAR
-(MAX))
+CREATE PROC sp_get_transcript_of_student
+    @StudentId NVARCHAR(50),
+    @ClassId NVARCHAR(50),
+    @Semester INT,
+    @SchoolYear NVARCHAR(50)
 AS
 BEGIN
-SELECT [value] AS studentId
-FROM OPENJSON(@list_json_studentId, '$.ids') s INNER JOIN Student_Conduct sc ON s.[value] = sc.StudentId
+    WITH CTA_courses AS 
+    (
+        SELECT Id FROM Course c INNER JOIN Class_Course cc ON c.Id = cc.CourseId
+        WHERE Semester = @Semester AND SchoolYear = @SchoolYear
+    )
+
+    SELECT * FROM Transcript WHERE StudentId = @studentId AND CourseId IN (SELECT Id FROM CTA_courses)
+END
+
+GO
+-- Conduct
+CREATE PROC sp_get_conduct_of_student(
+     @studentId NVARCHAR(50),
+@semester TINYINT,
+    @schoolYear NVARCHAR(50)
+   )
+AS
+BEGIN
+SELECT c.*
+FROM Student_Conduct sc
 INNER JOIN Conduct c ON sc.ConductId = c.Id
-WHERE sc.SchoolYear = @schoolYear AND sc.Semester = @semester
+WHERE sc.StudentId = @studentId AND sc.SchoolYear = @schoolYear AND sc.Semester = @semester
 END
 
 GO
@@ -222,7 +337,7 @@ END
 GO
 
 -- Monitor
-CREATE PROC sp_monitor_create_or_update(
+CREATE PROC sp_create_or_update_monitor(
     @ClassId NVARCHAR(50),
     @MonitorId NVARCHAR(50),
 
@@ -247,8 +362,28 @@ BEGIN
 END
 GO
 
+CREATE PROC sp_get_monitor_by_classId
+    @class_id NVARCHAR(50),
+    @semester INT,
+    @schoolYear NVARCHAR(50)
+AS
+BEGIN
+    SELECT
+        s.*
+    FROM
+        Monitor AS cm
+    JOIN
+    
+        Student AS s ON cm.MonitorId = s.Id
+    WHERE
+        cm.ClassId = @class_id AND
+        cm.Semester = @semester AND
+        cm.SchoolYear = @schoolYear
+END;
+GO
+
 -- Account
-CREATE PROC sp_account_search(
+CREATE PROC sp_search_account(
     @page_index INT,
     @page_size INT,
     @username NVARCHAR(10),
@@ -260,7 +395,7 @@ BEGIN
    DECLARE @RecordCount BIGINT;
     SET NOCOUNT ON; 
     SELECT
-            (ROW_NUMBER() OVER (ORDER BY Id)) AS RowNumber,
+        (ROW_NUMBER() OVER (ORDER BY username)) AS RowNumber,
             *
         INTO #Results
         FROM Account
@@ -303,7 +438,7 @@ END
 
 GO
 
-CREATE PROC sp_account_get_by_username(
+CREATE PROC sp_get_account_by_username(
     @username NVARCHAR(10)
 )
 AS
@@ -328,78 +463,222 @@ END
 GO
 
 -- Class
-CREATE PROC sp_get_classInfo(@Id NVARCHAR(50),@Semester TINYINT, @SchoolYear NVARCHAR(50))
+CREATE PROC sp_get_class_by_id(@id NVARCHAR(50))
 AS
 BEGIN
-    SELECT c.Id, c.Name, FormTeacher = l.Name, Department = d.Name,
-
-AssistantDean
-= dbo.func_getAssistantDeanName
-(d.Id), Monitor = dbo.func_getMonitorName
-(@Id,@Semester,@SchoolYear)
-    FROM Class c INNER JOIN Lecturer l ON c.FormTeacherId = l.Id
-        INNER JOIN Department d ON c.DepartmentId = d.Id
-    WHERE c.Id = @Id
+    SELECT * FROM Class WHERE Id = @id
 END
 GO
 
-
-GO
-
-CREATE PROC sp_get_monitor_of_class(@ClassId NVARCHAR(50),@Semester TINYINT, @SchoolYear NVARCHAR(50))
+CREATE PROCEDURE sp_create_class
+    @Id NVARCHAR(50),
+    @Name NVARCHAR(50),
+    @FormTeacherId NVARCHAR(10),
+    @DepartmentId NVARCHAR(50),
+    @FromYear INT,
+    @ToYear INT
 AS
 BEGIN
+    INSERT INTO Class (Id, Name, FormTeacherId, DepartmentId, FromYear, ToYear)
+    VALUES (@Id, @Name, @FormTeacherId, @DepartmentId, @FromYear, @ToYear);
+END;
 
-SELECT MonitorId
-FROM Monitor
-WHERE ClassId = @ClassId AND Semester = @Semester AND SchoolYear = @SchoolYear
+GO
+
+CREATE PROCEDURE sp_update_class
+    @Id NVARCHAR(50),
+    @Name NVARCHAR(50),
+    @FormTeacherId NVARCHAR(10),
+    @DepartmentId NVARCHAR(50),
+    @FromYear INT,
+    @ToYear INT
+AS
+BEGIN
+    UPDATE Class
+    SET
+        Name = @Name,
+        FormTeacherId = @FormTeacherId,
+        DepartmentId = @DepartmentId,
+        FromYear = @FromYear,
+        ToYear = @ToYear
+    WHERE
+        Id = @Id;
+END;
+
+
+GO
+
+
+CREATE PROC sp_delete_class(@id NVARCHAR(50))
+AS
+BEGIN
+    DELETE FROM Class WHERE Id = @id
 END
-GO
 
-EXEC sp_get_monitor_of_class '125211',2,'2022-2023'
+CREATE PROC
 
-GO
+GO  
 
-CREATE PROC sp_class_search(@page_index  INT,
+CREATE PROC sp_search_class(@page_index  INT,
     @page_size   INT,
     @id NVARCHAR(50),
-    @name NVARCHAR(50))
+    @name NVARCHAR(50),
+    @lecturerId NVARCHAR(10),
+    @departmentId NVARCHAR(10),
+    @year INT
+    )
 AS
 BEGIN
     DECLARE @RecordCount BIGINT;
-    IF(@page_size <> 0)
-            BEGIN
-        SET NOCOUNT ON;
-        SELECT(ROW_NUMBER() OVER(
-                              ORDER BY cl.Name ASC)) AS RowNumber,
-            cl.*
-        INTO #Results1
-        FROM [Class] AS cl
-        WHERE (@name IS NULL OR @name = '' OR (cl.Name LIKE '%' + @name + '%')) AND (@id IS NULL OR @id = '' OR (cl.Id LIKE '%' + @id + '%'))
+    SET NOCOUNT ON; 
+    SELECT
+            (ROW_NUMBER() OVER (ORDER BY c.Id)) AS RowNumber,
+            c.*,
+            l.Name AS FormTeacher,
+            d.Name AS Department
+        INTO #Results
+        FROM Class c INNER JOIN Lecturer l ON c.FormTeacherId = l.Id
+        INNER JOIN Department d ON c.DepartmentId = d.Id
+        WHERE
+            (@id IS NULL OR c.Id LIKE '%' + @id + '%')
+            AND (@name IS NULL OR c.Name LIKE '%' + @name + '%')
+            AND (@year IS NULL OR @year >= FromYear AND @year <= ToYear)
+            AND (@lecturerId IS NULL OR l.Id = @lecturerId)
+            AND (@departmentId IS NULL OR d.Id = @departmentId)
         SELECT @RecordCount = COUNT(*)
-        FROM #Results1;
-        SELECT *,
+        FROM #Results;
+
+    IF @page_size <> 0
+    BEGIN
+        SELECT
+            *,
             @RecordCount AS RecordCount
-        FROM #Results1
-        WHERE ROWNUMBER BETWEEN(@page_index - 1) * @page_size + 1 AND(((@page_index - 1) * @page_size + 1) + @page_size) - 1
+        FROM #Results
+        WHERE RowNumber BETWEEN (@page_index - 1) * @page_size + 1 AND ((@page_index - 1) * @page_size + 1) + @page_size - 1
             OR @page_index = -1;
-        DROP TABLE #Results1;
-    END;
-            ELSE
-            BEGIN
-        SET NOCOUNT ON;
-        SELECT(ROW_NUMBER() OVER(
-                              ORDER BY cl.Name ASC)) AS RowNumber,
-            cl.*
-        INTO #Results2
-        FROM [Class] AS cl
-        WHERE (@name IS NULL OR (@name = '') OR (cl.Name LIKE '%' + @name + '%')) AND (@id IS NULL OR @id = '' OR (cl.Id LIKE '%' + @id + '%'))
-        SELECT @RecordCount = COUNT(*)
-        FROM #Results2;
-        SELECT *,
+    END
+    ELSE
+    BEGIN
+        
+        SELECT
+            *,
             @RecordCount AS RecordCount
-        FROM #Results2;
-        DROP TABLE #Results2;
+        FROM #Results;
     END;
+        DROP TABLE #Results;
+END;
+GO
+
+GO
+-- AssistantDean
+CREATE PROC sp_get_assistant_dean_by_class(@classId NVARCHAR(50))
+AS
+BEGIN
+    SELECT l.* FROM Lecturer l INNER JOIN AssistantDean ad ON l.Id = ad.LecturerId
+    WHERE ad.DepartmentId = (SELECT DepartmentId FROM Class WHERE Id = @classId)
+END
+GO
+
+-- Lecture
+CREATE PROC sp_get_lecturer_by_id
+    @id NVARCHAR(50)
+AS
+BEGIN
+    SELECT
+           *
+    FROM
+        Lecturer
+    WHERE
+        Id = @id;
+END;
+GO
+
+
+CREATE PROC  sp_search_lecturer   (@page_index  INT,
+    @page_size   INT,
+    @id NVARCHAR(50),
+    @name NVARCHAR(100),
+    @phone NVARCHAR(20),
+    @email NVARCHAR(50),
+    @departmentId NVARCHAR(10)
+    )
+AS
+BEGIN
+    DECLARE @RecordCount BIGINT;
+    SET NOCOUNT ON; 
+    SELECT
+            (ROW_NUMBER() OVER (ORDER BY Id)) AS RowNumber,
+            *
+        INTO #Results
+        FROM Lecturer
+        WHERE
+            (@id IS NULL OR Id LIKE '%' + @id + '%')
+            AND (@name IS NULL OR Name LIKE '%' + @name + '%')
+            AND (@phone IS NULL OR Phone LIKE '%' + @phone + '%')
+            AND (@email IS NULL OR Email LIKE '%' + @email + '%')
+            AND (@departmentId IS NULL OR DepartmentId = @departmentId)
+        SELECT @RecordCount = COUNT(*)
+        FROM #Results;
+
+    IF @page_size <> 0
+    BEGIN
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results
+        WHERE RowNumber BETWEEN (@page_index - 1) * @page_size + 1 AND ((@page_index - 1) * @page_size + 1) + @page_size - 1
+            OR @page_index = -1;
+    END
+    ELSE
+    BEGIN
+        
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results;
+    END;
+        DROP TABLE #Results;
+END;
+GO
+
+-- Department
+CREATE PROC sp_search_department(@page_index  INT,
+    @page_size   INT,
+    @id NVARCHAR(50),
+    @name NVARCHAR(100)
+    )
+AS
+BEGIN
+    DECLARE @RecordCount BIGINT;
+    SET NOCOUNT ON; 
+    SELECT
+            (ROW_NUMBER() OVER (ORDER BY Id)) AS RowNumber,
+            *
+        INTO #Results
+        FROM Department
+        WHERE
+            (@id IS NULL OR Id LIKE '%' + @id + '%')
+            AND (@name IS NULL OR Name LIKE '%' + @name + '%')
+        SELECT @RecordCount = COUNT(*)
+        FROM #Results;
+
+    IF @page_size <> 0
+    BEGIN
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results
+        WHERE RowNumber BETWEEN (@page_index - 1) * @page_size + 1 AND ((@page_index - 1) * @page_size + 1) + @page_size - 1
+            OR @page_index = -1;
+    END
+    ELSE
+    BEGIN
+        
+        SELECT
+            *,
+            @RecordCount AS RecordCount
+        FROM #Results;
+    END;
+        DROP TABLE #Results;
 END;
 GO

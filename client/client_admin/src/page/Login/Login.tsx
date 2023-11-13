@@ -13,6 +13,7 @@ export default function Login() {
           <img src={logo} alt='utehy logo' />
         </div>
         <h1 className={styles.login_left_title}>CỔNG THÔNG TIN GIẢNG VIÊN</h1>
+        <h2>Hệ quản trị viên</h2>
       </Col>
       <Col span={20} className={styles.login_right}>
         <div className={styles.login_right_top}>

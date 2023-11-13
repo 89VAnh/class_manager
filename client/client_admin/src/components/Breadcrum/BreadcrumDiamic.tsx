@@ -30,10 +30,6 @@ export default function BreadcrumbDiamic() {
     return crumbs;
   }
 
-  useEffect(() => {
-    console.log(matchRouteDefinitions(routes));
-  }, [location]);
-
   return (
     <Breadcrumb
       items={[

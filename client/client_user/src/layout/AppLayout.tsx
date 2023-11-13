@@ -5,9 +5,12 @@ import "~/assets/scss/index.scss";
 // import BreadcrumbDiamic from "~/components/Breadcrum/BreadcrumDiamic";
 import { KeyOutlined, LogoutOutlined } from "@ant-design/icons";
 import { Dropdown, message } from "antd";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect } from "react";
+import { useRecoilState, useResetRecoilState } from "recoil";
 import { LOCAL_USER } from "~/constant/config";
-import { changePassword } from "~/service/user.service";
+import { authorization, changePassword } from "~/service/user.service";
+import { UserState } from "~/store/auth/atom";
+import { useDisclosure } from "~/utils/modal";
 import { storageService } from "~/utils/storage";
 import { Logout } from "~/utils/user";
 import { RULES_FORM } from "~/utils/validator";
@@ -19,11 +22,27 @@ interface Props {
 
 export default function AppLayout({ children }: Props): JSX.Element {
   const location = useLocation();
-  const [isChangePw, setIsChangePw] = useState(false);
+  const { open, isOpen, toggle } = useDisclosure();
+
+  const [userProfile, setUserProfile] = useRecoilState(UserState);
+  const resetUserProfile = useResetRecoilState(UserState);
+
+  useEffect(() => {
+    (async () => {
+      const userLocal = storageService.getStorage(LOCAL_USER);
+      if (!userLocal.username) {
+        resetUserProfile();
+        return;
+      }
+      const user = await authorization();
+      if (user) setUserProfile(userLocal);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const avatarProps = {
     src: "https://th.bing.com/th/id/OIP.7Wfxa-yuK2YA2RIXxA3mEgHaHa?pid=ImgDet&rs=1",
-    title: storageService.getStorage(LOCAL_USER).name,
+    title: userProfile.fullname,
     render: (_: unknown, dom: ReactNode) => {
       return (
         <Dropdown
@@ -33,7 +52,7 @@ export default function AppLayout({ children }: Props): JSX.Element {
                 key: "chagePw",
                 icon: <KeyOutlined />,
                 label: "Đổi mật khẩu",
-                onClick: () => setIsChangePw(true),
+                onClick: () => open,
               },
               {
                 key: "logout",
@@ -58,14 +77,14 @@ export default function AppLayout({ children }: Props): JSX.Element {
         width={450}
         autoFocusFirstInput
         title='Đổi mật khẩu'
-        open={isChangePw}
+        open={isOpen}
         submitter={{
           searchConfig: {
             submitText: "Đổi mật khẩu",
             resetText: "Huỷ",
           },
         }}
-        onOpenChange={setIsChangePw}
+        onOpenChange={toggle}
         onFinish={async (value: Record<string, string>) => {
           try {
             await changePassword({

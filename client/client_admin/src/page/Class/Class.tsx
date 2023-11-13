@@ -1,62 +1,98 @@
-import { UserOutlined } from "@ant-design/icons";
-import { ProList } from "@ant-design/pro-components";
-import { Button, Tag, Typography } from "antd";
+import { ProColumns, ProTable } from "@ant-design/pro-components";
+import { Space } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { CONDUCT_URL } from "~/config/urls";
-import { LOCAL_USER } from "~/constant/config";
-import { getClasses } from "~/service/class.service";
-import { storageService } from "~/utils/storage";
+import { useTranslation } from "react-i18next";
+import DeleteModal from "~/components/Modal/DeleteModal";
+import { CACHE } from "~/loader/cache";
+import { useDeleteClass, useSearchClasses } from "~/loader/class.loader";
+import { classInfo } from "~/model/classInfo";
+import ClassModal from "./components/ClassModal";
 
 export default function Class() {
-  const [classes, setClasses] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation("translation", { keyPrefix: "class" });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState({});
 
-  useEffect(() => {
-    setIsLoading(true);
-
-    getClasses(lectureId)
-      .then((data) => setClasses(data))
-      .catch(() => console.log("fail!!!"));
-
-    setIsLoading(false);
-  }, [lectureId]);
-
-  const data = classes.map(({ id }: { id: string }) => {
-    return {
-      title: (
-        <Typography.Title level={3}>
-          <Link to={`class/${id}`}>{id}</Link>
-        </Typography.Title>
-      ),
-      subtitle: <Tag color='#5BD8A6'>v</Tag>,
-      actions: [
-        <Link to={`${CONDUCT_URL}/${id}`}>
-          <Button>Điểm hạnh kiểm</Button>
-        </Link>,
-      ],
-      avatar: <UserOutlined />,
-      content: "",
-    };
+  const {
+    data: classes,
+    isLoading,
+    remove,
+  } = useSearchClasses({
+    params: {
+      pageIndex: page,
+      pageSize: pageSize,
+      year: dayjs().year(),
+      ...search,
+    },
   });
 
-  const headerTitle = (
-    <Typography.Title level={2}>DANH SÁCH LỚP HỌC</Typography.Title>
-  );
+  useEffect(() => {
+    return () => remove();
+  }, [remove]);
+
+  const columns: ProColumns<classInfo>[] = [
+    {
+      dataIndex: "id",
+      title: t("fields.id"),
+    },
+    {
+      dataIndex: "name",
+      title: t("fields.name"),
+    },
+    {
+      dataIndex: "formTeacher",
+      title: t("fields.formTeacher"),
+      search: false,
+    },
+    {
+      dataIndex: "department",
+      title: t("fields.department"),
+      search: false,
+    },
+    {
+      title: t("fields.actions"),
+      dataIndex: "action",
+      width: 100,
+      align: "center",
+      search: false,
+      render: (_, record) => {
+        return (
+          <Space>
+            <ClassModal id={record?.id} isCreate={false} />
+            <DeleteModal
+              id={record?.id}
+              useDelete={useDeleteClass}
+              cache={CACHE.CLASS}
+              t={t}
+            />
+          </Space>
+        );
+      },
+    },
+  ];
 
   return (
-    <ProList
-      dataSource={data}
-      metas={{
-        title: {},
-        subTitle: {},
-        type: {},
-        content: {},
-        avatar: {},
-        actions: { cardActionProps: "extra" },
-      }}
+    <ProTable<classInfo>
+      headerTitle={t("title")}
+      dataSource={classes ? classes.data : []}
       loading={isLoading}
-      headerTitle={headerTitle}
+      columns={columns}
+      rowKey={"id"}
+      pagination={{
+        defaultPageSize: 10,
+        onChange(page, pageSize) {
+          setPage(page);
+          setPageSize(pageSize);
+        },
+        total: classes ? classes.totalItems : 0,
+        showLessItems: false,
+        showTotal() {
+          return "";
+        },
+      }}
+      onSubmit={setSearch}
     />
   );
 }

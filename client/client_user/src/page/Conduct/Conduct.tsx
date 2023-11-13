@@ -16,7 +16,7 @@ import {
   theme,
 } from "antd";
 import dayjs from "dayjs";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useState } from "react";
 import { useParams } from "react-router-dom";
 import StickyBox from "react-sticky-box";
 import TranscriptDragger from "~/components/TranscriptDragger/TranscriptDragger";
@@ -28,14 +28,15 @@ import {
   conduct5Columns,
   summaryColumns,
 } from "~/config/columns";
+import { useGetClassById } from "~/loader/class.loader";
+import {
+  useGetConductsOfClass,
+  useUpdateConducts,
+} from "~/loader/conduct.loader";
 import { conduct } from "~/model/conduct";
 import EditableTable from "~/page/Conduct/ConductTable/ConductTable";
-import { getMonitorOfClass } from "~/service/class.service";
-import {
-  exportConductFile,
-  getConductOfClass,
-  updateConducts,
-} from "~/service/conduct.service";
+import { exportConductFile } from "~/service/conduct.service";
+import { formatToDate } from "~/utils/format-string";
 import styles from "./conduct.module.scss";
 
 export const ConductsContext = createContext<conduct[]>([]);
@@ -46,25 +47,38 @@ export default function Conducts() {
   const [semester, setSemester] = useState<number | undefined>(
     dayjs().month() >= 8 ? 1 : 2
   );
+
   const [schoolYear, setSchoolYear] = useState<string | undefined>(
     dayjs().month() >= 8
       ? `${currentYear}-${currentYear + 1}`
       : `${currentYear - 1}-${currentYear}`
   );
-  const [conducts, setConducts] = useState<conduct[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [conductsContext, setConductsContext] = useState<conduct[]>([]);
+
+  const [newConducts, setNewConducts] = useState<conduct[]>([]);
   const [isOpenConfirmSaveModal, setIsOpenConfirmSaveModal] =
     useState<boolean>(false);
   const [isOpenConfirmCancelModal, setIsOpenConfirmCancelModal] =
     useState<boolean>(false);
   const [monitorId, setMonitorId] = useState<string | undefined>(undefined);
 
+  const { data: conducts, isLoading } = useGetConductsOfClass({
+    params: {
+      pageIndex: 1,
+      pageSize: 10,
+      classId,
+      semester,
+      schoolYear,
+    },
+    config: {
+      onSuccess: (data) => setNewConducts(data),
+    },
+  });
+
+  const updateConduct = useUpdateConducts({});
+
   const completeConduct = (conduct: conduct): conduct => {
     if (!/\d+\/\d+\/\d+/.test(conduct.studentBirthday))
-      conduct.studentBirthday = dayjs(conduct.studentBirthday).format(
-        "DD/MM/YYYY"
-      );
+      conduct.studentBirthday = formatToDate(conduct.studentBirthday);
     // persent of fail credits
     const persentOfFailCredits = Math.round(
       (conduct.totalNumOfFailCredits / conduct.totalNumOfCredits) * 100
@@ -141,7 +155,8 @@ export default function Conducts() {
       ...item,
       ...completeConduct(row),
     });
-    setConducts(newData);
+
+    setNewConducts(newData);
   };
 
   const items: TabsProps["items"] = [
@@ -150,8 +165,8 @@ export default function Conducts() {
       label: "THKQRL",
       children: (
         <EditableTable
-          loading={loading}
           columns={summaryColumns}
+          loading={isLoading}
           handleSave={handleSave}
         />
       ),
@@ -161,8 +176,8 @@ export default function Conducts() {
       label: "Điểm TC 1",
       children: (
         <EditableTable
-          loading={loading}
           columns={conduct1Columns}
+          loading={isLoading}
           handleSave={handleSave}
         />
       ),
@@ -172,8 +187,8 @@ export default function Conducts() {
       label: "Điểm TC 2",
       children: (
         <EditableTable
-          loading={loading}
           columns={conduct2Columns}
+          loading={isLoading}
           handleSave={handleSave}
         />
       ),
@@ -183,7 +198,7 @@ export default function Conducts() {
       label: "Điểm TC 3",
       children: (
         <EditableTable
-          loading={loading}
+          loading={isLoading}
           columns={conduct3Columns}
           handleSave={handleSave}
         />
@@ -194,7 +209,7 @@ export default function Conducts() {
       label: "Điểm TC 4",
       children: (
         <EditableTable
-          loading={loading}
+          loading={isLoading}
           columns={conduct4Columns}
           handleSave={handleSave}
         />
@@ -205,39 +220,13 @@ export default function Conducts() {
       label: "Điểm TC 5",
       children: (
         <EditableTable
-          loading={loading}
+          loading={isLoading}
           columns={conduct5Columns}
           handleSave={handleSave}
         />
       ),
     },
   ];
-
-  const loadConducts = async () => {
-    setLoading(true);
-
-    if (classId && semester && schoolYear) {
-      let data: conduct[] = await getConductOfClass({
-        classId,
-        semester,
-        schoolYear,
-      });
-
-      data = data.map((x) => completeConduct(x));
-
-      setConducts(data);
-      setConductsContext(data);
-
-      setMonitorId(await getMonitorOfClass(classId, semester, schoolYear));
-    }
-
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadConducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId, semester, schoolYear]);
 
   // render tabs
   const {
@@ -253,21 +242,33 @@ export default function Conducts() {
     </StickyBox>
   );
 
-  // School year drowdown
-  const lenght = 6;
-
-  const schoolYearOptions = [...Array(lenght)].map((_, index) => {
-    const y = currentYear - index;
-    const schoolYear = `${y}-${y + 1}`;
-
-    return schoolYear;
+  const { data: classData } = useGetClassById({
+    id: classId || "",
   });
+
+  // School year drowdown
+  const schoolYearOptions = () => {
+    try {
+      const fromYear = classData ? (classData.fromYear as number) : 0;
+      const toYear = classData ? (classData.toYear as number) : 0;
+      const options = [];
+
+      for (let i = fromYear; i < toYear; i++) {
+        options.push(i + "-" + (i + 1));
+      }
+
+      return options;
+    } catch {
+      return [];
+    }
+  };
 
   const saveConducts = async () => {
     try {
-      updateConducts(
-        conducts.filter(
-          (c, i) => JSON.stringify(c) !== JSON.stringify(conductsContext[i])
+      updateConduct.mutate(
+        newConducts.filter(
+          (c: conduct, i: number) =>
+            JSON.stringify(c) !== JSON.stringify(conducts[i])
         )
       );
       notification.success({ message: "Lưu thông tin thành công!" });
@@ -277,7 +278,7 @@ export default function Conducts() {
   };
 
   const exportFile = async () => {
-    if (JSON.stringify(conducts) !== JSON.stringify(conductsContext)) {
+    if (JSON.stringify(conducts) !== JSON.stringify(newConducts)) {
       notification.warning({
         message: "Vui lòng lưu thay đổi trước khi xuất file!",
       });
@@ -323,18 +324,20 @@ export default function Conducts() {
                 name='semester'
                 label='Kỳ học :'
                 onChange={setSemester}></ProFormSelect>
-              <ProFormSelect
-                options={schoolYearOptions}
-                width='sm'
-                placeholder='Năm học'
-                name='schoolYear'
-                label='Năm học :'
-                onChange={setSchoolYear}
-                initialValue={schoolYear}
-              />
-              {conducts.length && (
+              {classData && (
                 <ProFormSelect
-                  options={conducts.map((x) => ({
+                  options={schoolYearOptions()}
+                  width='sm'
+                  placeholder='Năm học'
+                  name='schoolYear'
+                  label='Năm học :'
+                  onChange={setSchoolYear}
+                  initialValue={schoolYear}
+                />
+              )}
+              {conducts?.length > 0 && (
+                <ProFormSelect
+                  options={conducts.map((x: conduct) => ({
                     value: x.studentId,
                     label: x.studentId + " - " + x.studentName,
                   }))}
@@ -348,7 +351,7 @@ export default function Conducts() {
               )}
             </Space>
           </Col>
-          {conducts.length != 0 && (
+          {conducts?.length != 0 && (
             <Col>
               <Space size='large'>
                 <Button
@@ -374,15 +377,15 @@ export default function Conducts() {
           )}
         </Row>
 
-        {conducts.length === 0 && !!semester && !!schoolYear ? (
+        {conducts?.length === 0 && !!semester && !!schoolYear ? (
           <TranscriptDragger
             classId={classId!}
             semester={semester}
             schoolYear={schoolYear}
-            loadData={loadConducts}
           />
         ) : (
-          <ConductsContext.Provider value={conducts}>
+          <ConductsContext.Provider
+            value={newConducts.map((c) => completeConduct(c))}>
             <Tabs
               defaultActiveKey='1'
               items={items}
@@ -411,10 +414,12 @@ export default function Conducts() {
         title='Xác nhận huỷ thay đổi'
         open={isOpenConfirmCancelModal}
         onOk={() => {
-          loadConducts();
           setIsOpenConfirmCancelModal(false);
         }}
-        onCancel={() => setIsOpenConfirmCancelModal(false)}
+        onCancel={() => {
+          setNewConducts(conducts);
+          setIsOpenConfirmCancelModal(false);
+        }}
         okText='Huỷ thay đổi'
         cancelText='Thoát'>
         <h4>

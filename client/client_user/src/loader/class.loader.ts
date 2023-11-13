@@ -1,21 +1,36 @@
 import { useQuery } from "react-query";
 
+import { AxiosRequestConfig } from "axios";
 import { ExtractFnReturnType, QueryConfig } from "~/lib/react-query";
-import { getClasses } from "~/service/class.service";
+import { getById, searchClasses } from "~/service/class.service";
 import { CACHE } from "./cache";
 
-const useGetClasses = ({
-  lectureId,
+const useGetClassById = ({
+  id,
   config,
 }: {
-  lectureId: string;
-  config?: QueryConfig<typeof getClasses>;
+  id: string;
+  config?: QueryConfig<typeof getById>;
 }) => {
-  return useQuery<ExtractFnReturnType<typeof getClasses>>({
+  return useQuery<ExtractFnReturnType<typeof getById>>({
     ...config,
-    queryKey: [CACHE.CLASS, lectureId],
-    queryFn: () => getClasses(lectureId),
+    queryKey: [CACHE.CLASS, id],
+    queryFn: () => getById(id),
   });
 };
 
-export { useGetClasses };
+const useSearchClasses = ({
+  params,
+  config,
+}: {
+  params: AxiosRequestConfig["params"];
+  config?: QueryConfig<typeof searchClasses>;
+}) => {
+  return useQuery<ExtractFnReturnType<typeof searchClasses>>({
+    ...config,
+    queryKey: [CACHE.CLASS, params],
+    queryFn: () => searchClasses(params),
+  });
+};
+
+export { useGetClassById, useSearchClasses };

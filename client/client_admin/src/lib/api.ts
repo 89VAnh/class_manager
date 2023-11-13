@@ -80,3 +80,12 @@ export const put = async (path: string, data = {}, options = {}) => {
     throw e as AxiosError;
   }
 };
+
+export const del = async (path: string, options = {}) => {
+  try {
+    const response = await apiClient.delete(path, options);
+    return response;
+  } catch (e) {
+    throw e as AxiosError;
+  }
+};

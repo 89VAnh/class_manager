@@ -4,7 +4,7 @@ import storage from "~/utils/storage";
 
 const prefix = "Account";
 
-export const Login = async ({
+export const loginService = async ({
   username,
   password,
 }: {
@@ -24,7 +24,7 @@ export const Login = async ({
   }
 };
 
-export const ValidateToken = async () => {
+export const authorization = async () => {
   try {
     const token = storage.getToken();
 
@@ -37,7 +37,7 @@ export const ValidateToken = async () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const ChangePassword = async (data: Record<string, any>) => {
+export const changePassword = async (data: Record<string, any>) => {
   try {
     const res = await put(`${prefix}/change-password`, JSON.stringify(data));
     return res.data;

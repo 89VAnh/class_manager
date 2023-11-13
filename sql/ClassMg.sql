@@ -1,4 +1,9 @@
-DROP DATABASE ClassManager
+USE master;
+GO
+
+ALTER DATABASE ClassManager SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+GO
+DROP DATABASE ClassManager;
 GO
 
 CREATE DATABASE ClassManager
@@ -36,10 +41,10 @@ GO
     DepartmentId NVARCHAR
     (50) FOREIGN KEY REFERENCES Department
     (Id),
-        From_Year INT,
-        To_Year INT,
+        FromYear INT,
+        ToYear INT,
         CHECK
-    (To_Year > From_Year)
+    (ToYear > FromYear)
     )
 
     CREATE TABLE Student
@@ -83,6 +88,17 @@ GO
         NumOfCredits INT
     )
 
+    CREATE TABLE Class_Course
+    (
+        ClassId NVARCHAR(50),
+        CourseId NVARCHAR(50),
+        Semester TINYINT
+    CHECK
+    (Semester = 1 OR Semester = 2),
+        SchoolYear NVARCHAR(50) CHECK (SchoolYear LIKE '[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]'),
+        PRIMARY KEY (ClassId,CourseId,Semester,SchoolYear)
+    )
+
     CREATE TABLE Parents
     (
 
@@ -99,7 +115,7 @@ GO
     (
         StudentId NVARCHAR(50) FOREIGN KEY REFERENCES Student(Id) ON UPDATE CASCADE ON DELETE CASCADE,
         CourseId NVARCHAR(50) FOREIGN KEY REFERENCES Course(Id) ON UPDATE CASCADE ON DELETE CASCADE,
-        Point FLOAT,
+        Score FLOAT,
         Grade NVARCHAR(5),
     Semester TINYINT
     CHECK
@@ -147,6 +163,8 @@ GO
         Username NVARCHAR(10) PRIMARY KEY,
         Password NVARCHAR(200) NOT NULL CHECK (LEN(Password) >= 4),
         Name NVARCHAR(150),
-        Email NVARCHAR(200)
+        Email NVARCHAR(200),
+        Role TINYINT,
     )
     GO
+

@@ -19,9 +19,9 @@ BEGIN
     WHILE @@FETCH_STATUS = 0
     BEGIN
         INSERT INTO Account
-            (Username, Password, Name, Email)
+            (Username, Password, Name, Email,Role)
         VALUES
-            (@LecturerId, @LecturerId, @LecturerName, @LecturerEmail)
+            (@LecturerId, @LecturerId, @LecturerName, @LecturerEmail,2)
 
         FETCH NEXT FROM CUR_LecturerId INTO @LecturerId,@LecturerName,@LecturerEmail
     END

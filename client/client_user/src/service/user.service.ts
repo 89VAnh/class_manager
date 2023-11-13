@@ -24,7 +24,7 @@ export const loginService = async ({
   }
 };
 
-export const validateToken = async () => {
+export const authorization = async () => {
   try {
     const token = storage.getToken();
 

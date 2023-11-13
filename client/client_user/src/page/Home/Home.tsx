@@ -1,29 +1,26 @@
 import { UserOutlined } from "@ant-design/icons";
 import { ProList } from "@ant-design/pro-components";
 import { Button, Tag, Typography } from "antd";
-import { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import { Link } from "react-router-dom";
+import { useRecoilValue } from "recoil";
 import { CONDUCT_URL } from "~/config/urls";
-import { LOCAL_USER } from "~/constant/config";
-import { getClasses } from "~/service/class.service";
-import { storageService } from "~/utils/storage";
+import { useSearchClasses } from "~/loader/class.loader";
+import { UserState } from "~/store/auth/atom";
 
 export default function Home() {
-  const lectureId = storageService.getStorage(LOCAL_USER).username;
-  const [classes, setClasses] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const userProfile = useRecoilValue(UserState);
 
-  useEffect(() => {
-    setIsLoading(true);
+  const { data: classes, isLoading } = useSearchClasses({
+    params: {
+      pageIndex: 1,
+      pageSize: 10,
+      FormTeacherId: userProfile.username,
+      year: dayjs().year(),
+    },
+  });
 
-    getClasses(lectureId)
-      .then((data) => setClasses(data))
-      .catch(() => console.log("fail!!!"));
-
-    setIsLoading(false);
-  }, [lectureId]);
-
-  const data = classes.map(({ id }: { id: string }) => {
+  const data = (classes?.data || []).map(({ id }: { id: string }) => {
     return {
       title: (
         <Typography.Title level={3}>

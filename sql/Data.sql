@@ -43,7 +43,7 @@ VALUES
 GO
 
 INSERT INTO Class
-    (Id,Name , FormTeacherId, DepartmentId, From_Year, To_Year)
+    (Id, Name , FormTeacherId, DepartmentId, FromYear, ToYear)
 VALUES
     ('125201', '', '1223', '02',2020,2024),
     ('125202', '', '1222', '02',2020,2024),
@@ -103,3 +103,13 @@ INSERT INTO AssistantDean
     (LecturerId,DepartmentId)
 VALUES
     ('1215', '02')
+
+INSERT INTO Account
+    (Username, Password, Name, Email,Role)
+VALUES
+    ('admin','admin','Admin','admin@gmail.com',1)
+
+INSERT INTO Monitor
+(ClassId,MonitorId,Semester,SchoolYear)
+VALUES
+('125211','1221097',2,'2022-2023')

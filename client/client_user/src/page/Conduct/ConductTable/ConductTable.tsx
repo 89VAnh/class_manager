@@ -12,7 +12,12 @@ type Props = {
   handleSave: CallableFunction;
 };
 
-export default function EditableTable({ columns, loading, handleSave }: Props) {
+export default function EditableTable({
+  columns,
+  loading,
+  handleSave,
+  ...props
+}: Props) {
   const conducts = useContext<conduct[]>(ConductsContext);
   const [dataSource, setDataSource] = useState<conduct[]>([]);
 
@@ -83,6 +88,7 @@ export default function EditableTable({ columns, loading, handleSave }: Props) {
         sticky
         loading={loading}
         scroll={{ y: "46rem" }}
+        {...props}
       />
     </div>
   );

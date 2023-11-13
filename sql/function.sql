@@ -1,81 +1,20 @@
 
-CREATE FUNCTION func_get_pointAverage (@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
-RETURNS FLOAT
-AS
-BEGIN
-    DECLARE @PointAverage FLOAT;
+-- GO
+-- CREATE  FUNCTION func_get_totalNumOfCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
+-- RETURNS INT
+-- AS
+-- BEGIN
+--     DECLARE @total INT;
 
-    WITH
-        CTE_Transcript
-        AS
-        (
-            SELECT CourseId, Point
-            FROM Transcript
-            WHERE StudentId = @StudentId
-                AND Semester = @Semester
-                AND SchoolYear = @SchoolYear
-        ),
-        CTE_Course
-        AS
-        (
-            SELECT Id, NumOfCredits
-            FROM Course
-        )
+--     SELECT @total = SUM(c.NumOfCredits)
+--     FROM Transcript t INNER JOIN Course c
+--         ON t.CourseId = c.Id
+--     WHERE StudentId = @StudentId
+--         AND Semester = @Semester
+--         AND SchoolYear = @SchoolYear
 
-    SELECT @PointAverage = SUM(Point*NumOfCredits)/SUM(NumOfCredits)
-    FROM CTE_Transcript t INNER JOIN CTE_Course c ON t.CourseId = c.Id
-
-    RETURN ROUND(@PointAverage,2);
-END
-
-GO
-CREATE  FUNCTION func_get_totalNumOfCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
-RETURNS INT
-AS
-BEGIN
-    DECLARE @total INT;
-
-    SELECT @total = SUM(c.NumOfCredits)
-    FROM Transcript t INNER JOIN Course c
-        ON t.CourseId = c.Id
-    WHERE StudentId = @StudentId
-        AND Semester = @Semester
-        AND SchoolYear = @SchoolYear
-
-    RETURN @total
-END
-
-GO
-
-CREATE FUNCTION func_get_failCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
-RETURNS TABLE
-AS 
-RETURN SELECT c.Name, c.NumOfCredits
-FROM Transcript t INNER JOIN Course c
-    ON t.CourseId = c.Id
-WHERE StudentId = @StudentId
-    AND Semester = @Semester
-    AND SchoolYear = @SchoolYear
-    AND t.Grade = 'F'
-
-GO
-
-CREATE FUNCTION func_get_totalNumOfFailCredits(@StudentId NVARCHAR(50),@Semester TINYINT,@SchoolYear NVARCHAR(50))
-RETURNS INT
-AS
-BEGIN
-    DECLARE @Sum INT;
-
-    SELECT @Sum = Sum(NumOfCredits)
-    FROM dbo.func_getFailCredits(@StudentId,@Semester,@SchoolYear)
-
-    IF @Sum IS NULL
-    BEGIN
-        SET @Sum = 0
-    END
-
-    RETURN @Sum
-END
+--     RETURN @total
+-- END
 
 GO
 

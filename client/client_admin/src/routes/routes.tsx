@@ -1,8 +1,7 @@
-import { CONDUCT_URL, HOME_URL, LOGIN_URL } from "~/config/urls";
+import { CLASS_URL, LOGIN_URL } from "~/config/urls";
 import AppLayout from "~/layout/AppLayout";
-import Conduct from "~/page/Conduct/Conduct";
-import Home from "~/page/Home/Home";
-import Login from "~/page/Login/Login";
+import { ClassPage } from "~/page/Class";
+import { LoginPage } from "~/page/Login";
 import NotFound from "~/page/NotFound/NotFound";
 
 const routes = [
@@ -10,16 +9,15 @@ const routes = [
     path: "/",
     element: <AppLayout />,
     children: [
-      { path: HOME_URL, element: <Home /> },
       {
-        path: `${CONDUCT_URL}/:classId`,
-        element: <Conduct />,
+        path: CLASS_URL,
+        element: <ClassPage />,
       },
     ],
   },
   {
     path: LOGIN_URL,
-    element: <Login />,
+    element: <LoginPage />,
   },
   { path: "*", element: <NotFound /> },
 ];

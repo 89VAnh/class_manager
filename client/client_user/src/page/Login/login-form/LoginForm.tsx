@@ -3,7 +3,7 @@ import { ProForm, ProFormText } from "@ant-design/pro-components";
 import { Button, Card, notification } from "antd";
 import { HOME_URL } from "~/config/urls";
 import { LOCAL_USER } from "~/constant/config";
-import { Login } from "~/service/user.service";
+import { loginService } from "~/service/user.service";
 import storage, { storageService } from "~/utils/storage";
 import { RULES_FORM } from "~/utils/validator";
 import styles from "./loginForm.module.scss";
@@ -11,7 +11,7 @@ import styles from "./loginForm.module.scss";
 export default function LoginForm() {
   const handleLogin = async (user: { username: string; password: string }) => {
     try {
-      const data = await Login(user);
+      const data = await loginService(user);
       storage.setToken(data.token);
       storageService.setStorage(LOCAL_USER, JSON.stringify(data));
       window.open(HOME_URL, "_parent");
